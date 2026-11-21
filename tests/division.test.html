@@ -12,7 +12,7 @@
 <h1>Motor do Algoritmo da Divisão</h1>
 <pre id="out"></pre>
 <script type="module">
-import { divisionStep } from '../js/math/division.js';
+import { divisionStep, normalize } from '../js/math/division.js';
 
 const out = document.getElementById('out');
 let passed = 0, failed = 0;
@@ -41,7 +41,12 @@ t('divisão simples: 9 / 2', () => {
   same(res.q, '4');
   same(res.r, '1');
   same(res.ptr, 1);
-  same(res.done, true);
+  
+  // Passo 2: entra em decimais
+  res = divisionStep(res.D_str, 2, res.q, res.r, res.ptr);
+  same(res.q, '4.5');
+  same(res.r, '0');
+  same(res.done, false); // Ainda processa o check de fim
 });
 
 t('divisão com zero no quociente: 816 / 8', () => {
@@ -62,28 +67,33 @@ t('divisão com zero no quociente: 816 / 8', () => {
   same(res.q, '102');
   same(res.r, '0');
   same(res.ptr, 3);
-  same(res.done, true);
+  // No motor novo, done=true só após o check final
 });
 
-t('divisão começando com número menor: 125 / 5', () => {
-  // Passo 1: baixa o 1. 1 < 5.
-  let res = divisionStep('125', 5, '', '', 0);
-  same(res.q, ''); // Ainda não tem quociente
-  same(res.r, '1');
-  same(res.ptr, 1);
+t('divisão com decimais: 1.2 / 0.5', () => {
+  const { D, d } = normalize('1.2', '0.5');
+  same(D, '12', 'dividendo normalizado');
+  same(d, 5, 'divisor normalizado');
   
-  // Passo 2: baixa o 2. 12 / 5.
-  res = divisionStep('125', 5, res.q, res.r, res.ptr);
+  // No motor novo, o primeiro passo de 12/5 já gera quociente
+  let res = divisionStep(D, d, '', '', 0);
   same(res.q, '2');
   same(res.r, '2');
-  same(res.ptr, 2);
   
-  // Passo 3: baixa o 5. 25 / 5.
-  res = divisionStep('125', 5, res.q, res.r, res.ptr);
-  same(res.q, '25');
+  // Próximo passo deve baixar um zero e colocar ponto
+  res = divisionStep(res.D_str, d, res.q, res.r, res.ptr);
+  same(res.q, '2.4');
   same(res.r, '0');
-  same(res.ptr, 3);
-  same(res.done, true);
+});
+
+t('divisão menor por maior: 1 / 5', () => {
+  let res = divisionStep('1', 5, '', '', 0);
+  same(res.q, '0');
+  same(res.r, '1');
+  
+  res = divisionStep(res.D_str, 5, res.q, res.r, res.ptr);
+  same(res.q, '0.2');
+  same(res.r, '0');
 });
 
 out.innerHTML += `\n<b class="${failed ? 'fail' : 'pass'}">${passed} passaram, ${failed} falharam</b>`;

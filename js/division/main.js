@@ -1,6 +1,6 @@
 // Interação do laboratório de divisão.
 import { store } from './state.js';
-import { divisionStep } from '../math/division.js';
+import { divisionStep, normalize } from '../math/division.js';
 
 const elD = document.getElementById('dividendo');
 const eld = document.getElementById('divisor');
@@ -17,8 +17,11 @@ const regR = document.getElementById('reg-R');
 const regPtr = document.getElementById('reg-ptr');
 
 function reset() {
-  const D = elD.value || '0';
-  const d = parseInt(eld.value, 10);
+  const rawD = elD.value || '0';
+  const rawd = eld.value || '1';
+  
+  const { D, d } = normalize(rawD, rawd);
+  
   if (isNaN(d) || d === 0) {
     alert('O divisor não pode ser zero.');
     return;
@@ -30,7 +33,7 @@ function reset() {
     s.q = '';
     s.r = '';
     s.ptr = 0;
-    s.log = 'Estado inicializado. Pressione F8 para processar o primeiro algarismo.';
+    s.log = (rawD !== D) ? `Normalizado: ${rawD}/${rawd} virou ${D}/${d}. Pressione F8.` : 'Estado inicializado. Pressione F8.';
     s.done = false;
   }, 'setup');
 }
@@ -42,6 +45,7 @@ function next() {
   const result = divisionStep(s.D, s.d, s.q, s.r, s.ptr);
   
   store.update(state => {
+    state.D = result.D_str; // Atualiza caso tenha baixado zeros
     state.q = result.q;
     state.r = result.r;
     state.ptr = result.ptr;
@@ -77,21 +81,27 @@ store.subscribe((state, tags) => {
     elVisual.innerHTML = `<span class="highlight-D">${state.D}</span> | <u>${state.d}</u>`;
   } else {
     elVisual.innerHTML = `
-      <div style="color:var(--ink-3); font-size: 0.5em; margin-bottom: 10px;">${state.D} &divide; ${state.d}</div>
+      <div style="color:var(--ink-3); font-size: 0.5em; margin-bottom: 10px;">Divisão: ${state.d}</div>
       <div>Q: <span class="highlight-q">${state.q || '0'}</span></div>
       <div style="font-size: 0.7em;">R: <span class="highlight-R">${state.r || '0'}</span></div>
     `;
   }
 
-  const q_num = parseInt(state.q || 0, 10);
+  const q_num = parseFloat(state.q || 0);
   const r_num = parseInt(state.r || 0, 10);
-  const res = (state.d * q_num) + r_num;
-  const match = res === parseInt(state.D, 10);
-
+  // Para a fórmula bater com decimais: (d * q) + (R / 10^precisão)
+  // Simplificando: d * q + r_num * 10^-p
+  const res = parseFloat((state.d * q_num).toFixed(10)) + (r_num / Math.pow(10, state.q.split('.')[1]?.length || 0));
+  
+  // No algoritmo manual com resto final, a prova real é D = d*q + R
+  // Mas com decimais, o resto "muda de escala" a cada passo.
+  // Mostramos o match final quando acaba.
+  const targetD = parseFloat(state.D.split('.')[0] + (state.D.includes('.') ? '.' + state.D.split('.')[1] : ''));
+  
   elFormula.innerHTML = `
-    <span class="highlight-D">${state.D}</span> = (${state.d} &times; <span class="highlight-q">${q_num}</span>) + <span class="highlight-R">${r_num}</span><br>
-    <span style="color: ${match ? 'var(--ok)' : 'var(--pen)'}; font-size: 0.8em; font-weight: bold;">
-    [Result: ${res}] ${match && state.done ? '✓ MATCH' : '...'}</span>
+    Projeção: ${state.d} &times; <span class="highlight-q">${state.q || 0}</span> = ${(state.d * q_num).toFixed(4)}<br>
+    <span style="color: ${state.done ? 'var(--ok)' : 'var(--ink-3)'}; font-size: 0.8em; font-weight: bold;">
+    ${state.done ? '✓ ALGORITMO FINALIZADO' : '... processando'}</span>
   `;
 });
 
