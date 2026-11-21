@@ -37,6 +37,15 @@ export const PHASES = [
     deliverable: 'Conseguir desmontar um número de fornecedor: de onde veio, com que amostra, medido por quem.',
     modules: [
       {
+        id: 'divisao',
+        title: 'O Algoritmo da Divisão',
+        problem: 'Por que o fechamento financeiro do ERP nunca bate por causa de centavos? Onde o resto da divisão "some" no código?',
+        items: [
+          lab('division'),
+          explica('explica-divisao', 'Como o conceito de resto (mod) é usado em segurança de dados e por que "baixar um zero" é uma operação de estado?'),
+        ],
+      },
+      {
         id: 'processos',
         title: 'Probabilidade e processos',
         problem: 'De cada 100 clientes que atrasaram este mês, quantos estarão inadimplentes daqui a três? E quanto tempo um pedido leva, em média, até ser faturado?',

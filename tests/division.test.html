@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<title>Testes do Algoritmo da Divisão</title>
+<style>
+  body { background:#f8fafd; color:#1f2a44; font:14px/1.6 ui-monospace, Consolas, monospace; padding:24px; }
+  .pass { color:#12a150 } .fail { color:#e5383b; font-weight:700 } h1 { font-size:16px }
+</style>
+</head>
+<body>
+<h1>Motor do Algoritmo da Divisão</h1>
+<pre id="out"></pre>
+<script type="module">
+import { divisionStep } from '../js/math/division.js';
+
+const out = document.getElementById('out');
+let passed = 0, failed = 0;
+const failures = [];
+const esc = (s) => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;');
+
+function t(name, fn) {
+  try {
+    fn();
+    passed++;
+    out.innerHTML += `<span class="pass">✓ ${esc(name)}</span>\n`;
+  } catch (e) {
+    failed++;
+    failures.push(`${name}: ${e.message}`);
+    out.innerHTML += `<span class="fail">✗ ${esc(name)}: ${esc(e.message)}</span>\n`;
+  }
+}
+
+function same(a, b, label = 'valor') {
+  if (a !== b) throw new Error(`${label}: veio "${a}", esperado "${b}"`);
+}
+
+t('divisão simples: 9 / 2', () => {
+  // Passo 1: baixa o 9
+  let res = divisionStep('9', 2, '', '', 0);
+  same(res.q, '4');
+  same(res.r, '1');
+  same(res.ptr, 1);
+  same(res.done, true);
+});
+
+t('divisão com zero no quociente: 816 / 8', () => {
+  // Passo 1: 8 / 8
+  let res = divisionStep('816', 8, '', '', 0);
+  same(res.q, '1');
+  same(res.r, '0');
+  same(res.ptr, 1);
+  
+  // Passo 2: baixa o 1. 1 < 8.
+  res = divisionStep('816', 8, res.q, res.r, res.ptr);
+  same(res.q, '10');
+  same(res.r, '1');
+  same(res.ptr, 2);
+  
+  // Passo 3: baixa o 6. 16 / 8.
+  res = divisionStep('816', 8, res.q, res.r, res.ptr);
+  same(res.q, '102');
+  same(res.r, '0');
+  same(res.ptr, 3);
+  same(res.done, true);
+});
+
+t('divisão começando com número menor: 125 / 5', () => {
+  // Passo 1: baixa o 1. 1 < 5.
+  let res = divisionStep('125', 5, '', '', 0);
+  same(res.q, ''); // Ainda não tem quociente
+  same(res.r, '1');
+  same(res.ptr, 1);
+  
+  // Passo 2: baixa o 2. 12 / 5.
+  res = divisionStep('125', 5, res.q, res.r, res.ptr);
+  same(res.q, '2');
+  same(res.r, '2');
+  same(res.ptr, 2);
+  
+  // Passo 3: baixa o 5. 25 / 5.
+  res = divisionStep('125', 5, res.q, res.r, res.ptr);
+  same(res.q, '25');
+  same(res.r, '0');
+  same(res.ptr, 3);
+  same(res.done, true);
+});
+
+out.innerHTML += `\n<b class="${failed ? 'fail' : 'pass'}">${passed} passaram, ${failed} falharam</b>`;
+document.title = failed ? `FALHOU (${failed})` : `OK (${passed})`;
+
+if (new URLSearchParams(location.search).has('report')) {
+  fetch('/__report', { method: 'POST', body: JSON.stringify({ passed, failed, failures }) });
+}
+</script>
+</body>
+</html>

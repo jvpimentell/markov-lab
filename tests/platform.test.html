@@ -483,7 +483,7 @@ t('trilha: nenhum texto cita empresa', () => {
 });
 t('laboratórios: os prontos dizem onde guardam o progresso; os planejados não têm endereço', () => {
   const ready = Object.entries(LABS).filter(([, lab]) => lab.href);
-  same(ready.map(([id]) => id).join(), 'markov,llm,vetores');
+  same(ready.map(([id]) => id).join(), 'markov,llm,vetores,division');
   for (const [id, lab] of Object.entries(LABS)) {
     assert(lab.title && lab.blurb, `${id}: texto`);
     if (!lab.href) { assert(!lab.progress, `${id}: planejado não tem progresso`); continue; }
@@ -566,10 +566,14 @@ t('progresso: uma fase inteira feita vale 1', () => {
 t('próximo passo: o primeiro item aberto, na ordem; pula laboratório planejado', () => {
   const storage = memory();
   const trail = loadTrail(storage);
+  same(nextStep(trail, storage).item.id, 'lab-division');
+  storage.setItem('divisionlab:v1', JSON.stringify({ completed: ['tutorial'] }));
+  trail.notes['explica-divisao'] = 'x'.repeat(MIN_EXPLAIN);
   same(nextStep(trail, storage).item.id, 'lab-markov');
   storage.setItem('markovlab:v3', JSON.stringify({ completed: LABS.markov.progress[0].ids }));
   storage.setItem('markovlab:course', JSON.stringify({ done: LABS.markov.progress[1].ids }));
   same(nextStep(trail, storage).item.id, 'khan-estatistica');
+
   trail.checks.add('khan-estatistica');
   trail.notes['explica-processos'] = 'x'.repeat(MIN_EXPLAIN);
   trail.checks.add('3b1b-algebra');
