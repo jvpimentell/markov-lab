@@ -11,7 +11,8 @@ const initial = {
   ptr: 0,
   log: 'Insira os valores e clique em CARREGAR.',
   done: false,
-  history: [] // Lista de { val, sub, res, digit, ptr }
+  subStep: 'START',
+  history: [] 
 };
 
 function derive(state, tags) {

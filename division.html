@@ -58,57 +58,20 @@
     }
     .metodo-chave {
       display: inline-block;
-      line-height: 1.1;
+      line-height: 1.2;
       white-space: pre;
+      font-family: var(--mono);
     }
-    .math-grid {
-        border-collapse: collapse;
-        font-family: var(--mono);
-        font-size: 1.5em;
-    }
-    .math-grid td {
-        width: 1.2ch;
-        height: 1.2em;
-        text-align: center;
-        padding: 0;
-        vertical-align: middle;
-    }
-    .chave-v {
-        border-left: 3px solid var(--ink);
-    }
-    .chave-h {
-        border-top: 3px solid var(--ink);
-        text-align: left !important;
-        padding-left: 10px !important;
-        color: var(--ok-ink);
-        font-weight: bold;
-    }
-    .divisor-cell {
-        text-align: left !important;
-        padding-left: 10px !important;
-    }
-    .sub-val {
-        color: var(--pen-ink);
-    }
-    .sub-bar {
-        border-bottom: 2px solid var(--ink-3);
-    }
-    .rem-val {
-        font-weight: bold;
-    }
-    .tower-line { display: flex; }
+    .tower-line { display: flex; align-items: baseline; }
+    .t-dividend { min-width: 200px; text-align: right; padding-right: 15px; }
+    .t-divisor { border-left: 3px solid var(--ink); padding-left: 15px; }
+    .t-divisor-bracket { border-left: 3px solid var(--ink); border-bottom: 3px solid var(--ink); padding-left: 15px; min-width: 100px; }
+    .t-space { min-width: 200px; }
+    .t-quotient { border-left: 3px solid var(--ink); padding-left: 15px; color: var(--ok-ink); font-weight: bold; }
+    .t-sub { min-width: 200px; text-align: right; padding-right: 15px; color: var(--pen-ink); }
+    .t-bar { min-width: 200px; text-align: right; padding-right: 15px; color: var(--ink-3); }
+    .t-remainder { min-width: 200px; text-align: right; padding-right: 15px; font-weight: bold; }
     
-    /* Indentação dinâmica baseada no passo */
-    .t-indent-0 { margin-left: 0; }
-    .t-indent-1 { margin-left: 1ch; }
-    .t-indent-2 { margin-left: 2ch; }
-    .t-indent-3 { margin-left: 3ch; }
-    .t-indent-4 { margin-left: 4ch; }
-    .t-indent-5 { margin-left: 5ch; }
-    .t-indent-6 { margin-left: 6ch; }
-
-    .paper-setup { font-size: 1.5em; text-align: center; width: 100%; }
-    .chave { font-weight: bold; margin: 0 10px; }
     .setup-controls {
       display: flex;
       gap: 16px;
@@ -118,13 +81,16 @@
     .setup-controls label { font-weight: bold; display: block; margin-bottom: 6px; color: var(--ink-2); font-size: 0.9em; }
     .setup-controls input { width: 140px; font-size: 1.2em; }
     .status-box {
-      padding: 16px;
-      border-left: 4px solid var(--blue);
-      background: var(--line-soft);
-      font-style: italic;
-      color: var(--ink-2);
-      min-height: 60px;
+      padding: 24px;
+      border-left: 6px solid var(--blue);
+      background: #eef4ff;
+      font-size: 1.2em;
+      color: var(--ink);
+      min-height: 80px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+      border-radius: 0 var(--r-sm) var(--r-sm) 0;
     }
+    .status-box b { color: var(--blue); }
     .highlight-D { color: var(--blue); }
     .highlight-q { color: var(--ok-ink); }
     .highlight-R { color: var(--pen-ink); }
