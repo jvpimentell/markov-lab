@@ -1,6 +1,5 @@
-// Interação do laboratório de divisão (Versão 4.0 - Estabilidade Total).
+// Interação do laboratório de divisão (Versão 5.0 - Grade de Tabelas e Estabilidade).
 
-// 1. SINALIZAÇÃO DE BOOT IMEDIATA (Evita a caixa de erro vermelha)
 document.documentElement.dataset.ready = '1';
 
 import { store } from './state.js';
@@ -20,90 +19,109 @@ const regq = document.getElementById('reg-q');
 const regR = document.getElementById('reg-R');
 
 function reset() {
-  try {
-    const norm = normalize(elD.value || '816', eld.value || '8');
-    store.update(s => {
-      s.D = norm.D; s.d = norm.d; s.q = ''; s.r = ''; s.ptr = 0; s.history = [];
-      s.subStep = 'START';
-      s.log = 'Aperte PRÓXIMO para começar.';
-      s.done = false;
-    }, 'setup');
-  } catch (e) {
-    console.error("Erro no reset:", e);
-  }
+  const norm = normalize(elD.value || '816', eld.value || '8');
+  store.update(s => {
+    s.D = norm.D; s.d = norm.d; s.q = ''; s.r = ''; s.ptr = 0; s.history = [];
+    s.subStep = 'START';
+    s.log = 'Clique em PRÓXIMO para analisar o primeiro valor.';
+    s.done = false;
+  }, 'setup');
 }
 
 function next() {
   const s = store.get();
   if (s.done) return;
 
-  try {
-    const result = divisionStep(s.D, s.d, s.q, s.r, s.ptr, s.subStep);
-    store.update(state => {
-      state.D = result.D_str;
-      state.q = result.q;
-      state.r = result.r;
-      state.ptr = result.ptr;
-      state.subStep = result.nextSubStep;
-      state.done = result.done;
-      state.log = result.log || '';
-      if (result.stepData) state.history.push(result.stepData);
-    }, 'step');
-  } catch (e) {
-    console.error("Erro no próximo passo:", e);
-  }
+  const result = divisionStep(s.D, s.d, s.q, s.r, s.ptr, s.subStep);
+  
+  store.update(state => {
+    state.D = result.D_str;
+    state.q = result.q;
+    state.r = result.r;
+    state.ptr = result.ptr;
+    state.subStep = result.nextSubStep;
+    state.done = result.done;
+    state.log = result.log || '';
+    if (result.stepData) state.history.push(result.stepData);
+  }, 'step');
 }
 
-function renderLousa(state) {
-  const { D, d, q, history, ptr, subStep } = state;
-  
-  // Criamos uma grade de texto (canvas de caracteres)
-  const cols = D.length + d.toString().length + 5;
-  let canvas = [];
+function renderTable(state) {
+    const { D, d, q, history, ptr, subStep } = state;
+    let html = `<table class="math-table">`;
+    
+    // Header Row: Dividendo | Divisor
+    html += `<tr>`;
+    D.split('').forEach((char, i) => {
+        const isFocus = (i === ptr && subStep === 'START');
+        html += `<td style="${isFocus ? 'color:var(--blue); font-weight:bold;' : ''}">${char}</td>`;
+    });
+    html += `<td class="chave-v" rowspan="2"></td><td class="divisor-cell" colspan="10">${d}</td></tr>`;
+    
+    // Quociente Row
+    html += `<tr>${D.split('').map(() => '<td></td>').join('')}<td class="chave-h" colspan="10">${q || '&nbsp;'}</td></tr>`;
 
-  // Linha 1: Dividendo | Divisor
-  let line1 = D.padEnd(D.length + 1) + "|" + d;
-  canvas.push(line1);
+    // Subtrações e Restos em cascata
+    history.forEach((step, i) => {
+        // Linha da Subtração
+        html += `<tr>`;
+        const subStr = step.sub.toString();
+        const subOffset = step.ptr - subStr.length + 1;
+        for(let j=0; j<D.length; j++) {
+            if (j >= subOffset && j <= step.ptr) {
+                html += `<td class="sub-val">${j === subOffset ? '-' : ''}${subStr[j-subOffset]}</td>`;
+            } else html += `<td></td>`;
+        }
+        html += `</tr>`;
+        
+        // Linha do Traço
+        html += `<tr>`;
+        for(let j=0; j<D.length; j++) {
+            if (j >= subOffset && j <= step.ptr) html += `<td class="sub-bar"></td>`;
+            else html += `<td></td>`;
+        }
+        html += `</tr>`;
 
-  // Linha 2: Quociente
-  let line2 = "".padEnd(D.length + 1) + "|" + (q || "");
-  canvas.push(line2);
-  
-  // Linha 3: Traço da Chave
-  let line3 = "".padEnd(D.length + 1) + "-".repeat(d.toString().length + 2);
-  canvas.push(line3);
+        // Linha do Resto + Próximo algarismo baixado
+        html += `<tr>`;
+        const resStr = step.res.toString();
+        const nextStep = history[i+1];
+        const nextDigit = (i === history.length - 1 && ptr < D.length) ? D[ptr] : "";
+        const resOffset = step.ptr - resStr.length + 1;
+        
+        for(let j=0; j<D.length; j++) {
+            if (j >= resOffset && j <= step.ptr + (nextDigit ? 1 : 0)) {
+                let charIndex = j - resOffset;
+                let displayChar = (resStr + nextDigit)[charIndex];
+                html += `<td style="font-weight:bold;">${displayChar || ''}</td>`;
+            } else html += `<td></td>`;
+        }
+        html += `</tr>`;
+    });
 
-  // Subtrações
-  history.forEach((step) => {
-      const subLine = `-${step.sub}`.padStart(step.ptr + 1);
-      canvas.push(subLine);
-      canvas.push("-".repeat(step.sub.toString().length + 1).padStart(step.ptr + 1));
-      
-      // O resto desta etapa aparece na próxima linha
-      const remLine = `${step.res}`.padStart(step.ptr + 1);
-      canvas.push(remLine);
-  });
+    // Caso inicial: baixando primeiro valor
+    if (history.length === 0 && subStep === 'MULTIPLY') {
+        html += `<tr>`;
+        const firstVal = D.substring(0, ptr + 1);
+        for(let j=0; j<D.length; j++) {
+            if (j <= ptr) html += `<td style="font-weight:bold;">${firstVal[j]}</td>`;
+            else html += `<td></td>`;
+        }
+        html += `</tr>`;
+    }
 
-  // Se estivermos baixando um número, ele aparece no final do último resto
-  if (subStep === 'MULTIPLY' && history.length === 0) {
-      canvas.push(D.substring(0, ptr + 1).padStart(ptr + 1));
-  }
-
-  return `<pre style="font-family: 'Atkinson Hyperlegible Mono', monospace; font-size: 1.2em; line-height: 1.2; margin: 0;">${canvas.join('\n')}</pre>`;
+    html += `</table>`;
+    return html;
 }
 
 store.subscribe((state, tags) => {
-  if (!elStatus) return;
-
-  elStatus.innerHTML = `<span>${state.log}</span>`;
+  elStatus.innerHTML = `<b>${state.log}</b>`;
   btnNext.disabled = state.done;
-  elVisual.innerHTML = renderLousa(state);
+  elVisual.innerHTML = renderTable(state);
 
-  // Painel lateral
   regD.textContent = state.D;
   regd.textContent = state.d;
   regq.textContent = state.q || '0';
-  regR.textContent = state.r || '0';
 
   const q_num = parseFloat(state.q || 0);
   elFormula.innerHTML = `<b>VERIFICAÇÃO:</b><br>${state.d} x ${state.q || 0} = ${(state.d * q_num).toFixed(2)}`;
