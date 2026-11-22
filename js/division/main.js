@@ -1,4 +1,4 @@
-// Interação do laboratório de divisão (Versão 5.0 - Grade de Tabelas e Estabilidade).
+// Interação do laboratório de divisão (Versão 6.0 - Grade de Tabelas Realista).
 
 document.documentElement.dataset.ready = '1';
 
@@ -16,7 +16,6 @@ const elFormula = document.getElementById('formula');
 const regD = document.getElementById('reg-D');
 const regd = document.getElementById('reg-d');
 const regq = document.getElementById('reg-q');
-const regR = document.getElementById('reg-R');
 
 function reset() {
   const norm = normalize(elD.value || '816', eld.value || '8');
@@ -50,61 +49,59 @@ function renderTable(state) {
     const { D, d, q, history, ptr, subStep } = state;
     let html = `<table class="math-table">`;
     
-    // Header Row: Dividendo | Divisor
+    // Header Row: Dividendo e Divisor
     html += `<tr>`;
     D.split('').forEach((char, i) => {
         const isFocus = (i === ptr && subStep === 'START');
-        html += `<td style="${isFocus ? 'color:var(--blue); font-weight:bold;' : ''}">${char}</td>`;
+        html += `<td style="${isFocus ? 'color:var(--blue); font-weight:bold; border-bottom: 2px solid var(--blue);' : ''}">${char}</td>`;
     });
-    html += `<td class="chave-v" rowspan="2"></td><td class="divisor-cell" colspan="10">${d}</td></tr>`;
+    // A CHAVE (Vertical)
+    html += `<td class="chave-v" rowspan="2"></td><td class="divisor-cell" colspan="15" style="border-bottom: 3px solid var(--ink);">${d}</td></tr>`;
     
-    // Quociente Row
-    html += `<tr>${D.split('').map(() => '<td></td>').join('')}<td class="chave-h" colspan="10">${q || '&nbsp;'}</td></tr>`;
+    // Quociente Row (abaixo do divisor)
+    html += `<tr>${D.split('').map(() => '<td></td>').join('')}<td class="quotient-cell" colspan="15" style="color:var(--ok-ink); font-weight:bold; text-align:left; padding-left:8px;">${q || '&nbsp;'}</td></tr>`;
 
-    // Subtrações e Restos em cascata
+    // Subtrações em cascata
     history.forEach((step, i) => {
         // Linha da Subtração
-        html += `<tr>`;
-        const subStr = step.sub.toString();
-        const subOffset = step.ptr - subStr.length + 1;
-        for(let j=0; j<D.length; j++) {
-            if (j >= subOffset && j <= step.ptr) {
-                html += `<td class="sub-val">${j === subOffset ? '-' : ''}${subStr[j-subOffset]}</td>`;
-            } else html += `<td></td>`;
-        }
-        html += `</tr>`;
-        
-        // Linha do Traço
-        html += `<tr>`;
-        for(let j=0; j<D.length; j++) {
-            if (j >= subOffset && j <= step.ptr) html += `<td class="sub-bar"></td>`;
-            else html += `<td></td>`;
-        }
-        html += `</tr>`;
+        if (step.sub > 0) {
+            html += `<tr>`;
+            const subStr = step.sub.toString();
+            const subOffset = step.ptr - subStr.length + 1;
+            for(let j=0; j<D.length; j++) {
+                if (j >= subOffset && j <= step.ptr) {
+                    // Célula da subtração com borda inferior (traço da conta)
+                    const isLastDigit = (j === step.ptr);
+                    html += `<td class="sub-val" style="border-bottom: 2px solid var(--ink-3);">${j === subOffset ? '-' : ''}${subStr[j-subOffset]}</td>`;
+                } else html += `<td></td>`;
+            }
+            html += `</tr>`;
 
-        // Linha do Resto + Próximo algarismo baixado
-        html += `<tr>`;
-        const resStr = step.res.toString();
-        const nextStep = history[i+1];
-        const nextDigit = (i === history.length - 1 && ptr < D.length) ? D[ptr] : "";
-        const resOffset = step.ptr - resStr.length + 1;
-        
-        for(let j=0; j<D.length; j++) {
-            if (j >= resOffset && j <= step.ptr + (nextDigit ? 1 : 0)) {
-                let charIndex = j - resOffset;
-                let displayChar = (resStr + nextDigit)[charIndex];
-                html += `<td style="font-weight:bold;">${displayChar || ''}</td>`;
-            } else html += `<td></td>`;
+            // Linha do Resto + Próximo algarismo baixado
+            html += `<tr>`;
+            const resStr = step.res.toString();
+            const nextStep = history[i+1];
+            const nextDigit = (i === history.length - 1 && ptr < D.length) ? D[ptr] : "";
+            const resOffset = step.ptr - resStr.length + 1;
+            
+            for(let j=0; j<D.length; j++) {
+                if (j >= resOffset && j <= step.ptr + (nextDigit ? 1 : 0)) {
+                    let charIndex = j - resOffset;
+                    let displayChar = (resStr + nextDigit)[charIndex];
+                    const isDropped = (nextDigit && charIndex === (resStr + nextDigit).length - 1);
+                    html += `<td style="${isDropped ? 'color:var(--blue); font-weight:bold;' : 'font-weight:bold;'}">${displayChar || ''}</td>`;
+                } else html += `<td></td>`;
+            }
+            html += `</tr>`;
         }
-        html += `</tr>`;
     });
 
-    // Caso inicial: baixando primeiro valor
+    // Estado intermediário: baixando primeiro valor
     if (history.length === 0 && subStep === 'MULTIPLY') {
         html += `<tr>`;
         const firstVal = D.substring(0, ptr + 1);
         for(let j=0; j<D.length; j++) {
-            if (j <= ptr) html += `<td style="font-weight:bold;">${firstVal[j]}</td>`;
+            if (j <= ptr) html += `<td style="font-weight:bold; color:var(--blue); border-bottom: 2px solid var(--blue);">${firstVal[j]}</td>`;
             else html += `<td></td>`;
         }
         html += `</tr>`;
