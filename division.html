@@ -19,7 +19,6 @@
       gap: 24px;
       padding: 24px;
       height: 100%;
-      align-items: start;
     }
     .register-view {
       font-family: var(--mono);
@@ -27,15 +26,9 @@
       color: #aff5b4;
       padding: 24px;
       border-radius: var(--r);
-      box-shadow: inset 0 2px 10px rgba(0,0,0,0.5);
-      border: 1px solid var(--ink-2);
     }
-    .reg-line { display: flex; justify-content: space-between; margin-bottom: 12px; border-bottom: 1px solid #30363d; padding-bottom: 4px; }
-    .reg-label { color: #8b949e; }
     .work-area {
       background: var(--stage);
-      background-image: radial-gradient(var(--grid) 1.5px, transparent 1.5px);
-      background-size: 20px 20px;
       border: 1.5px solid var(--line);
       border-radius: var(--r);
       padding: 32px;
@@ -45,123 +38,89 @@
     }
     .division-step-visual {
       font-family: var(--mono);
-      font-size: 1.8em;
-      text-align: left;
-      padding: 40px;
-      background: rgba(255,255,255,0.7);
-      border: 1px solid var(--line);
+      font-size: 2em;
+      padding: 60px;
+      background: #ffffff;
       border-radius: var(--r-sm);
       color: var(--ink);
-      min-height: 500px;
+      min-height: 550px;
       overflow: auto;
-      box-shadow: 2px 2px 5px rgba(0,0,0,0.05);
+      box-shadow: inset 0 0 10px rgba(0,0,0,0.05);
     }
     .metodo-chave {
       display: inline-block;
-      line-height: 1.2;
+      line-height: 1.25;
       white-space: pre;
-      font-family: var(--mono);
     }
-    .tower-line { display: flex; align-items: baseline; }
-    .t-dividend { min-width: 200px; text-align: right; padding-right: 15px; }
-    .t-divisor { border-left: 3px solid var(--ink); padding-left: 15px; }
-    .t-divisor-bracket { border-left: 3px solid var(--ink); border-bottom: 3px solid var(--ink); padding-left: 15px; min-width: 100px; }
-    .t-space { min-width: 200px; }
-    .t-quotient { border-left: 3px solid var(--ink); padding-left: 15px; color: var(--ok-ink); font-weight: bold; }
-    .t-sub { min-width: 200px; text-align: right; padding-right: 15px; color: var(--pen-ink); }
-    .t-bar { min-width: 200px; text-align: right; padding-right: 15px; color: var(--ink-3); }
-    .t-remainder { min-width: 200px; text-align: right; padding-right: 15px; font-weight: bold; }
+    .tower-line { display: flex; align-items: stretch; }
+    .t-dividend { min-width: 320px; text-align: right; padding-right: 20px; }
     
-    .setup-controls {
-      display: flex;
-      gap: 16px;
-      align-items: flex-end;
-      flex-wrap: wrap;
+    /* A CHAVE (Bracket Estilizado) */
+    .t-divisor-box {
+      border-left: 4px solid var(--ink);
+      border-bottom: 4px solid var(--ink);
+      padding: 0 15px 5px 15px;
+      min-width: 140px;
+      display: inline-block;
     }
-    .setup-controls label { font-weight: bold; display: block; margin-bottom: 6px; color: var(--ink-2); font-size: 0.9em; }
-    .setup-controls input { width: 140px; font-size: 1.2em; }
+    .t-quotient-box {
+      border-left: 4px solid var(--ink);
+      padding: 5px 15px;
+      color: var(--ok-ink);
+      font-weight: bold;
+      display: inline-block;
+    }
+    
+    .t-space { min-width: 320px; }
+    .t-sub { min-width: 320px; text-align: right; padding-right: 20px; color: var(--pen-ink); }
+    .t-bar-wrap { min-width: 320px; text-align: right; padding-right: 20px; }
+    .t-bar { border-bottom: 2px solid var(--ink-3); display: inline-block; min-width: 80px; height: 1px; margin-bottom: 8px; }
+    .t-remainder { min-width: 320px; text-align: right; padding-right: 20px; font-weight: bold; }
+    
     .status-box {
       padding: 24px;
-      border-left: 6px solid var(--blue);
-      background: #eef4ff;
-      font-size: 1.2em;
+      border-left: 8px solid var(--blue);
+      background: #f0f7ff;
+      font-size: 1.15em;
       color: var(--ink);
-      min-height: 80px;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+      min-height: 100px;
       border-radius: 0 var(--r-sm) var(--r-sm) 0;
     }
-    .status-box b { color: var(--blue); }
-    .highlight-D { color: var(--blue); }
+    .setup-controls input { width: 140px; font-size: 1.2em; }
     .highlight-q { color: var(--ok-ink); }
-    .highlight-R { color: var(--pen-ink); }
-
-    @media (max-width: 900px) {
-      .division-grid { grid-template-columns: 1fr; }
-      .register-view { order: 2; }
-    }
   </style>
 </head>
 <body>
   <div class="app">
     <header class="topbar">
-      <div class="brand">
-        <h1>Algoritmo da Divisão</h1>
-        <p>entender na teoria, provar na prática, usar num problema real</p>
-      </div>
-      <nav class="top-actions">
-        <a class="text-btn" href="index.html">Trilha</a>
-      </nav>
+      <div class="brand"><h1>Algoritmo da Divisão</h1><p>estudo passo a passo</p></div>
+      <nav class="top-actions"><a class="text-btn" href="index.html">Trilha</a></nav>
     </header>
-
     <main class="workspace" style="grid-template-columns: 1fr;">
       <section class="stage">
         <div class="division-grid">
           <div class="work-area">
             <div class="setup-controls">
-              <div>
-                <label>Dividendo (D)</label>
-                <input type="number" id="dividendo" class="field" value="816">
-              </div>
-              <div>
-                <label>Divisor (d)</label>
-                <input type="number" id="divisor" class="field" value="8">
-              </div>
+              <input type="number" id="dividendo" value="816">
+              <input type="number" id="divisor" value="8">
               <button class="btn btn-marker" id="btn-load">CARREGAR</button>
               <button class="btn btn-primary" id="btn-next">PRÓXIMO (F8)</button>
             </div>
-            
-            <div class="division-step-visual" id="visual">
-              -- / --
-            </div>
-
-            <div class="status-box" id="status">
-              Carregando laboratório...
-            </div>
-            
-            <div class="card" style="padding: 16px; font-size: 0.9em; border: 1px dashed var(--line);">
-                <b>Dica:</b> Tente 816 / 8. No segundo passo, veja o "Instruction Pointer" baixar o número 1. 
-                Como 1 < 8, o algoritmo deve registrar um 0 no quociente antes de baixar o 6.
-            </div>
+            <div class="division-step-visual" id="visual">--</div>
+            <div class="status-box" id="status">Carregue um exemplo para começar.</div>
           </div>
-
           <div class="register-view">
-            <div style="color: var(--marker); margin-bottom: 20px; font-weight: bold; font-size: 1.1em;">// CPU REGISTERS (INTERNAL STATE)</div>
-            <div class="reg-line"><span class="reg-label">D_RAW (Input):</span> <span id="reg-D">0</span></div>
-            <div class="reg-line"><span class="reg-label">d_VAL (Divisor):</span> <span id="reg-d">0</span></div>
-            <div class="reg-line"><span class="reg-label">q_ACC (Quociente):</span> <span id="reg-q" class="highlight-q">0</span></div>
-            <div class="reg-line"><span class="reg-label">R_VAL (Resto):</span> <span id="reg-R" class="highlight-R">0</span></div>
-            <div class="reg-line"><span class="reg-label">IP (Pointer):</span> <span id="reg-ptr">0</span></div>
-            
-            <div style="margin-top: 32px; padding: 12px; background: rgba(255,255,255,0.05); border-radius: 4px;">
-                <div style="color: var(--marker); font-size: 0.8em; margin-bottom: 8px;">VERIFICAÇÃO:</div>
-                <div id="formula" style="font-size: 1.1em; word-break: break-all;">D = d * q + R</div>
-            </div>
+             <div style="color: var(--marker); margin-bottom: 20px;">// REGISTRADORES</div>
+             <div class="reg-line">D_RAW: <span id="reg-D">0</span></div>
+             <div class="reg-line">d_VAL: <span id="reg-d">0</span></div>
+             <div class="reg-line">q_ACC: <span id="reg-q">0</span></div>
+             <div class="reg-line">R_VAL: <span id="reg-R">0</span></div>
+             <div id="formula" style="margin-top: 20px; font-size: 0.9em; padding-top: 20px; border-top: 1px solid var(--ink-2);"></div>
           </div>
         </div>
       </section>
     </main>
   </div>
-
   <script type="module" src="js/division/main.js"></script>
 </body>
 </html>
