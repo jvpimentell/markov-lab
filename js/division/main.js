@@ -1,4 +1,4 @@
-// Interação do laboratório de divisão (Versão 8.0 - Com Rascunho de Multiplicação).
+// Interação do laboratório de divisão (Versão 10.0 - Estabilidade e Visual Ferretto).
 
 document.documentElement.dataset.ready = '1';
 
@@ -48,13 +48,16 @@ function next() {
         state.log = result.log || '';
         if (result.stepData) state.history.push(result.stepData);
 
-        // GERA RASCUNHO SE ESTIVER NO PASSO DE MULTIPLICAÇÃO
-        if (state.subStep === 'SUBTRACT') {
-            const q_last = state.q[state.q.length - 1];
-            if (q_last && q_last !== '.' && q_last !== '0') {
-                state.multiDraft = getMultiplicationSteps(state.d, parseInt(q_last));
+        // GERA RASCUNHO SE ESTIVER NO PASSO DE MULTIPLICAÇÃO OU SUBTRAÇÃO
+        if (state.subStep === 'SUBTRACT' || state.subStep === 'MULTIPLY') {
+            const q_val = state.q[state.q.length - 1];
+            const q_digit = parseInt(q_val);
+            if (!isNaN(q_digit) && q_digit > 0) {
+                state.multiDraft = getMultiplicationSteps(state.d, q_digit);
+            } else {
+                state.multiDraft = null;
             }
-        } else if (state.subStep === 'START') {
+        } else {
             state.multiDraft = null; 
         }
     }, 'step');
@@ -66,14 +69,19 @@ function next() {
 function renderTable(state) {
     const { D, d, q, history, ptr, subStep } = state;
     let html = `<table class="math-table">`;
+    
+    // Header Row: Dividendo | Divisor
     html += `<tr>`;
     D.split('').forEach((char, i) => {
         const isFocus = (i === ptr && (subStep === 'START' || subStep === 'CHECK'));
         html += `<td style="${isFocus ? 'color:var(--blue); font-weight:bold; border-bottom: 2px solid var(--blue);' : ''}">${char}</td>`;
     });
     html += `<td class="chave-v" rowspan="2"></td><td class="divisor-cell" colspan="15" style="border-bottom: 3px solid var(--ink); font-weight:bold;">${d}</td></tr>`;
+    
+    // Quociente Row
     html += `<tr>${D.split('').map(() => '<td></td>').join('')}<td class="quotient-cell" colspan="15" style="color:var(--ok-ink); font-weight:bold; text-align:left; padding-left:12px;">${q || '&nbsp;'}</td></tr>`;
 
+    // Subtrações e Restos em cascata
     history.forEach((step, i) => {
         if (step.sub > 0) {
             html += `<tr>`;
@@ -85,11 +93,13 @@ function renderTable(state) {
                 } else html += `<td></td>`;
             }
             html += `</tr>`;
+
             html += `<tr>`;
             const resStr = step.res.toString();
             const nextStep = history[i+1];
             const nextDigit = (i === history.length - 1 && ptr < D.length) ? D[ptr] : "";
             const resOffset = step.ptr - resStr.length + 1;
+            
             for(let j=0; j<D.length; j++) {
                 if (j >= resOffset && j <= step.ptr + (nextDigit ? 1 : 0)) {
                     let charIndex = j - resOffset;
@@ -116,7 +126,7 @@ function renderTable(state) {
 }
 
 function renderMulti(draft) {
-    if (!draft) return '<div style="color:var(--ink-3); font-size:0.9em; font-style:italic; padding:20px;">O rascunho de multiplicação aparecerá aqui para ajudar no cálculo do quociente.</div>';
+    if (!draft) return '<div style="color:var(--ink-3); font-size:0.9em; font-style:italic; padding:20px;">O rascunho de multiplicação aparecerá aqui quando necessário.</div>';
     let html = `<div style="font-family:var(--mono); font-size:1.5em; padding:20px; border:1px dashed var(--line); background:var(--stage); border-radius:8px;">`;
     html += `<div style="text-align:right; border-bottom:2px solid var(--ink); margin-bottom:5px; padding-bottom:5px;">`;
     html += `<div>${draft.a}</div>`;

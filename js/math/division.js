@@ -1,4 +1,4 @@
-// Motor da Divisão (Versão Robusta Ferretto).
+// Motor da Divisão (Versão v41.0 - Lógica Ferretto Pura Blindada).
 
 export function normalize(D, d) {
   const D_str = D.toString();
@@ -12,66 +12,69 @@ export function normalize(D, d) {
   return { D: D_num.toString(), d: d_num, factor, wasDecimal: max_dec > 0 };
 }
 
-/**
- * Executa um passo do algoritmo da divisão.
- * Estados: START (Baixar/Analisar) -> CHECK (Decidir) -> MULTIPLY -> SUBTRACT
- */
 export function divisionStep(D_str, d_val, q_acc, r_val, ptr, subStep = 'START') {
-  // 1. FIM DA CONTA
-  if (ptr >= D_str.length && (r_val === '0' || r_val === '')) {
-      return { q: q_acc, r: '0', ptr, done: true, D_str, stepData: null, log: "Divisão finalizada." };
+  let next_D = D_str;
+  let cq = q_acc;
+  let cr = r_val === '' ? '0' : r_val;
+  let cp = ptr;
+
+  // 1. MODO DECIMAL: Expandir se necessário
+  if (cp >= next_D.length && cr !== '0') {
+      if (!cq.includes('.')) cq = (cq === '' ? '0' : cq) + '.';
+      next_D += '0';
+  }
+
+  // 2. GESTÃO DE FIM
+  if (cp >= next_D.length && (cr === '0' || cr === '')) {
+      return { q: cq, r: '0', ptr: cp, done: true, D_str: next_D, log: "Divisão finalizada." };
   }
   
-  if (q_acc.includes('.') && q_acc.split('.')[1].length >= 5) {
-      return { q: q_acc, r: r_val, ptr, done: true, D_str, log: "Fim (limite de 5 casas)." };
+  if (cq.includes('.') && cq.split('.')[1].length >= 5) {
+      return { q: cq, r: cr, ptr: cp, done: true, D_str: next_D, log: "Fim (limite)." };
   }
 
-  // Modo decimal
-  if (ptr >= D_str.length && r_val !== '0') {
-      if (!q_acc.includes('.')) q_acc = (q_acc === '' ? '0' : q_acc) + '.';
-      D_str += '0';
-  }
+  const digit = next_D[cp];
+  const cvs = (cr === '0' ? '' : cr) + digit;
+  const cvn = parseInt(cvs, 10);
 
-  const digit = D_str[ptr];
-  const current_val_str = (r_val === '0' ? '' : r_val) + digit;
-  const current_num = parseInt(current_val_str, 10);
-
-  // START: Baixou o dígito
+  // START
   if (subStep === 'START') {
-      return { q: q_acc, r: r_val, ptr, done: false, D_str, nextSubStep: 'CHECK', log: `Baixamos o <b>${digit}</b>. Temos o valor <b>${current_num}</b>.` };
+      return { q: cq, r: cr, ptr: cp, done: false, D_str: next_D, nextSubStep: 'CHECK', log: `Baixou ${digit}. Temos ${cvn}.` };
   }
 
-  // CHECK: Decidir se divide ou põe zero
+  // CHECK
   if (subStep === 'CHECK') {
-      if (current_num >= d_val) {
-          return { q: q_acc, r: r_val, ptr, done: false, D_str, nextSubStep: 'MULTIPLY', log: `O ${d_val} cabe dentro de ${current_num}.` };
+      if (cvn >= d_val) {
+          return { q: cq, r: cr, ptr: cp, done: false, D_str: next_D, nextSubStep: 'MULTIPLY', log: `O ${d_val} cabe em ${cvn}.` };
       } else {
-          let next_q = q_acc;
-          if (q_acc !== '' && !q_acc.endsWith('.')) {
-              next_q += '0';
-              return { q: next_q, r: current_val_str, ptr: ptr + 1, done: false, D_str, nextSubStep: 'START', log: `Não cabe. Põe <b>0</b> no quociente e baixa o próximo.` };
+          // NÃO CABE
+          if (cq === '') {
+              if (cp === next_D.length - 1) {
+                  // Inicia decimal, mas PRESERVA o resto (cr vira cvs)
+                  return { q: '0.', r: cvs, ptr: cp + 1, done: false, D_str: next_D, nextSubStep: 'START', log: `Menor. Põe 0,.` };
+              }
+              return { q: cq, r: cvs, ptr: cp + 1, done: false, D_str: next_D, nextSubStep: 'START', log: `Ainda menor.` };
+          } else {
+              // Já tem quociente: bota 0 e PRESERVA resto
+              return { q: cq + '0', r: cvs, ptr: cp + 1, done: false, D_str: next_D, nextSubStep: 'START', log: `Põe 0.` };
           }
-          if (q_acc === '' && ptr === D_str.length - 1) {
-              return { q: '0.', r: r_val, ptr: ptr, done: false, D_str: D_str + '0', nextSubStep: 'START', log: `Menor que o divisor. Iniciamos com <b>0,</b>.` };
-          }
-          return { q: q_acc, r: current_val_str, ptr: ptr + 1, done: false, D_str, nextSubStep: 'START', log: `Ainda menor que o divisor. Baixamos o próximo.` };
       }
   }
 
-  // MULTIPLY: Define o próximo dígito do quociente
+  // MULTIPLY
   if (subStep === 'MULTIPLY') {
-      const q_digit = Math.floor(current_num / d_val);
-      const sub = q_digit * d_val;
-      return { q: q_acc + q_digit, r: r_val, ptr, done: false, D_str, nextSubStep: 'SUBTRACT', log: `Cabe <b>${q_digit}</b> vezes. Multiplicamos: ${q_digit} x ${d_val} = ${sub}.` };
+      const qd = Math.floor(cvn / d_val);
+      return { q: cq + qd, r: cr, ptr: cp, done: false, D_str: next_D, nextSubStep: 'SUBTRACT', log: `Cabe ${qd} vezes.` };
   }
 
-  // SUBTRACT: Gera o novo resto
+  // SUBTRACT
   if (subStep === 'SUBTRACT') {
-      const q_last = q_acc[q_acc.length - 1];
-      const sub = parseInt(q_last) * d_val;
-      const remainder = current_num - sub;
-      return { q: q_acc, r: remainder.toString(), ptr: ptr + 1, done: false, D_str, nextSubStep: 'START', log: `Resto: <b>${remainder}</b>.`, stepData: { val: current_num, sub, res: remainder, digit, ptr } };
+      const q_val_str = cq.replace('.', '');
+      const q_last = q_val_str[q_val_str.length - 1];
+      const sv = parseInt(q_last) * d_val;
+      const rem = cvn - sv;
+      return { q: cq, r: rem.toString(), ptr: cp + 1, done: false, D_str: next_D, nextSubStep: 'START', log: `Sobrou ${rem}.`, stepData: { val: cvn, sub: sv, res: rem, digit, ptr: cp } };
   }
 
-  return { q: q_acc, r: r_val, ptr: ptr + 1, done: false, D_str, nextSubStep: 'START' };
+  return { q: cq, r: cr, ptr: cp + 1, done: false, D_str: next_D, nextSubStep: 'START' };
 }
