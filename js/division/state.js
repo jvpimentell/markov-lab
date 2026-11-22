@@ -12,7 +12,8 @@ const initial = {
   log: 'Insira os valores e clique em CARREGAR.',
   done: false,
   subStep: 'START',
-  history: [] 
+  history: [],
+  multiDraft: null // { a, b, partials, final }
 };
 
 function derive(state, tags) {
