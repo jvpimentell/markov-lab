@@ -92,7 +92,7 @@ t('divisão com decimais: 1.2 / 0.5', () => {
 
 t('divisão menor por maior: 1 / 5', () => {
   let res = divisionStep('1', 5, '', '', 0);
-  same(res.q, '0');
+  same(res.q, '0.'); // Padrão Ferretto: 1/5 já começa com 0,
   same(res.r, '1');
   
   res = divisionStep(res.D_str, 5, res.q, res.r, res.ptr);

@@ -1,4 +1,4 @@
-// Interação do laboratório de divisão.
+// Interação do laboratório de divisão (Padrão Ferretto).
 import { store } from './state.js';
 import { divisionStep, normalize } from '../math/division.js';
 
@@ -20,21 +20,21 @@ function reset() {
   const rawD = elD.value || '0';
   const rawd = eld.value || '1';
   
-  const { D, d } = normalize(rawD, rawd);
+  const norm = normalize(rawD, rawd);
   
-  if (isNaN(d) || d === 0) {
+  if (isNaN(norm.d) || norm.d === 0) {
     alert('O divisor não pode ser zero.');
     return;
   }
 
   store.update(s => {
-    s.D = D;
-    s.d = d;
+    s.D = norm.D;
+    s.d = norm.d;
     s.q = '';
     s.r = '';
     s.ptr = 0;
     s.history = [];
-    s.log = (rawD !== D) ? `Normalizado: ${rawD}/${rawd} virou ${D}/${d}. Pressione F8.` : 'Estado inicializado. Pressione F8.';
+    s.log = norm.wasDecimal ? `Ferretto: Igualamos as casas (${rawD}/${rawd} ➜ ${norm.D}/${norm.d}). Pressione F8.` : 'Iniciado. Pressione F8.';
     s.done = false;
   }, 'setup');
 }
@@ -50,11 +50,9 @@ function next() {
     state.q = result.q;
     state.r = result.r;
     state.ptr = result.ptr;
-    state.log = result.log;
     state.done = result.done;
-    if (result.stepData) {
-        state.history.push(result.stepData);
-    }
+    state.log = result.log || '';
+    if (result.stepData) state.history.push(result.stepData);
     
     if (result.done) {
         const storage = localStorage;
@@ -69,55 +67,38 @@ function next() {
   }, 'step');
 }
 
-function renderPaperTower(state) {
+function renderChave(state) {
+  const history = state.history;
   const D = state.D;
   const d = state.d;
-  const history = state.history;
   
-  let html = `<div class="paper-tower">`;
+  let html = `<div class="metodo-chave">`;
   
   // Linha 1: Dividendo | Divisor
   html += `<div class="tower-line"><span class="t-dividend">${D}</span><span class="t-divisor">| ${d}</span></div>`;
   
-  if (history.length > 0) {
-    let q_display = state.q;
-    const firstSub = history.find(h => h.sub > 0);
-    const subVal = firstSub ? firstSub.sub : '0';
-    
-    // Alinhamento da primeira subtração
-    const firstDigitIndex = D.search(/[1-9]/);
-    const initialIndent = firstDigitIndex >= 0 ? firstDigitIndex : 0;
-    const indentStr = " ".repeat(initialIndent);
+  // Linha 2: Quociente (embaixo do divisor)
+  let q_display = state.q || '&nbsp;';
+  html += `<div class="tower-line"><span class="t-space"></span><span class="t-quotient">| <span class="highlight-q">${q_display}</span></span></div>`;
 
-    html += `<div class="tower-line"><span class="t-sub">${indentStr}- ${subVal}</span><span class="t-quotient">| <span class="highlight-q">${q_display}</span></span></div>`;
-    html += `<div class="tower-line"><span class="t-bar">${indentStr}-------</span></div>`;
-    
-    let currentPadding = initialIndent;
-    
-    for (let i = 0; i < history.length; i++) {
-        const step = history[i];
-        const nextStep = history[i+1];
-        
-        if (nextStep) {
-            // No papel, baixamos o próximo dígito ao lado do resto
-            const pad = " ".repeat(currentPadding + 1);
-            html += `<div class="tower-line"><span class="t-remainder">${pad}${step.res}${nextStep.digit}</span></div>`;
+  // Corpo das subtrações
+  if (history.length > 0) {
+    let currentPadding = 0;
+    history.forEach((step, i) => {
+        if (step.sub > 0) {
+            const pad = " ".repeat(currentPadding);
+            html += `<div class="tower-line"><span class="t-sub">${pad}- ${step.sub}</span></div>`;
+            html += `<div class="tower-line"><span class="t-bar">${pad}-------</span></div>`;
             
-            if (nextStep.sub > 0) {
-                html += `<div class="tower-line"><span class="t-sub">${pad}- ${nextStep.sub}</span></div>`;
-                html += `<div class="tower-line"><span class="t-bar">${pad}----</span></div>`;
-                // Ao subtrair, o resto da próxima etapa começa um pouco à direita se o quociente crescer
-                // Mas no algoritmo padrão, mantemos o alinhamento da esquerda
-                // Vou manter o currentPadding crescendo 1 a cada passo de dígito
-                currentPadding++;
-            } else {
-                currentPadding++;
-            }
-        } else if (state.done) {
-            const pad = " ".repeat(currentPadding + 1);
-            html += `<div class="tower-line"><span class="t-remainder">${pad}${step.res}</span></div>`;
+            const nextStep = history[i+1];
+            const remainderDisplay = step.res + (nextStep ? nextStep.digit : '');
+            html += `<div class="tower-line"><span class="t-remainder">${pad}${remainderDisplay}</span></div>`;
+            currentPadding++;
+        } else if (step.digit) {
+            // Se baixou número mas não subtraiu (registrou 0), aumenta padding
+            currentPadding++;
         }
-    }
+    });
   }
   
   html += `</div>`;
@@ -125,42 +106,26 @@ function renderPaperTower(state) {
 }
 
 store.subscribe((state, tags) => {
-  // Atualiza UI
   regD.textContent = state.D;
   regd.textContent = state.d;
   regq.textContent = state.q || '0';
   regR.textContent = state.r || '0';
   regPtr.textContent = state.ptr;
 
-  elStatus.innerHTML = state.log;
+  elStatus.innerHTML = state.done ? "Algoritmo Concluído." : (state.log || "Processando...");
   btnNext.disabled = state.done;
 
   if (tags.has('setup')) {
     elVisual.innerHTML = `<div class="paper-setup"><span class="highlight-D">${state.D}</span> <span class="chave">|</span> <u>${state.d}</u></div>`;
   } else {
-    elVisual.innerHTML = renderPaperTower(state);
+    elVisual.innerHTML = renderChave(state);
   }
 
   const q_num = parseFloat(state.q || 0);
-  const r_num = parseInt(state.r || 0, 10);
-  const res = parseFloat((state.d * q_num).toFixed(10)) + (r_num / Math.pow(10, state.q.split('.')[1]?.length || 0));
-  
-  elFormula.innerHTML = `
-    Projeção: ${state.d} &times; <span class="highlight-q">${state.q || 0}</span> = ${(state.d * q_num).toFixed(4)}<br>
-    <span style="color: ${state.done ? 'var(--ok)' : 'var(--ink-3)'}; font-size: 0.8em; font-weight: bold;">
-    ${state.done ? '✓ ALGORITMO FINALIZADO' : '... processando'}</span>
-  `;
+  elFormula.innerHTML = `Prova Real: ${state.d} &times; ${state.q || 0} = ${(state.d * q_num).toFixed(2)}`;
 });
 
 btnLoad.addEventListener('click', reset);
 btnNext.addEventListener('click', next);
-
-window.addEventListener('keydown', (e) => {
-  if (e.key === 'F8') {
-    e.preventDefault();
-    next();
-  }
-});
-
-// Init
+window.addEventListener('keydown', (e) => { if (e.key === 'F8') { e.preventDefault(); next(); } });
 reset();

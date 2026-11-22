@@ -1,50 +1,46 @@
-// Motor do algoritmo da divisão: funções puras para o "Assembly" da matemática.
+// Motor ajustado para o padrão Ferretto: Normalização prévia e passos de subtração.
 
 /**
  * Normaliza os valores para garantir que o divisor seja inteiro.
- * Ex: 1.2 / 0.5 -> 12 / 5
+ * Regra do Ferretto: Igualar casas e tirar vírgula.
  */
 export function normalize(D, d) {
-  let D_val = parseFloat(D);
-  let d_val = parseFloat(d);
+  const D_str = D.toString();
+  const d_str = d.toString();
   
-  if (isNaN(D_val) || isNaN(d_val) || d_val === 0) return { D: D.toString(), d: 0 };
+  const D_dec = D_str.includes('.') ? D_str.split('.')[1].length : 0;
+  const d_dec = d_str.includes('.') ? d_str.split('.')[1].length : 0;
+  const max_dec = Math.max(D_dec, d_dec);
 
-  let d_str = d.toString();
-  if (d_str.includes('.')) {
-    const shift = d_str.split('.')[1].length;
-    const factor = Math.pow(10, shift);
-    D_val = parseFloat((D_val * factor).toFixed(10));
-    d_val = parseFloat((d_val * factor).toFixed(10));
-  }
-  
-  return { D: D_val.toString(), d: Math.round(d_val) };
+  const factor = Math.pow(10, max_dec);
+  const D_num = Math.round(parseFloat(D) * factor);
+  const d_num = Math.round(parseFloat(d) * factor);
+
+  return { 
+    D: D_num.toString(), 
+    d: d_num, 
+    factor,
+    wasDecimal: max_dec > 0 
+  };
 }
 
 /**
  * Executa um passo do algoritmo da divisão.
- * @returns {{ q: string, r: string, ptr: number, log: string, done: boolean, D_str: string, stepData: object }}
  */
 export function divisionStep(D_str, d_val, q_acc, r_val, ptr) {
-  // Se acabaram os algarismos originais e ainda há resto, entramos no modo decimal
+  // Se acabaram os dígitos e ainda há resto, entra no modo decimal (baixa zero)
   if (ptr >= D_str.length) {
-    if (r_val === '0' || r_val === '' || q_acc.split('.')[1]?.length >= 5) {
-      return { q: q_acc, r: r_val, ptr, log: 'Fim.', done: true, D_str, stepData: null };
+    if (r_val === '0' || r_val === '' || (q_acc.includes('.') && q_acc.split('.')[1].length >= 5)) {
+      return { q: q_acc, r: r_val, ptr, done: true, D_str, stepData: null };
     }
     
     if (!q_acc.includes('.')) {
       q_acc = (q_acc === '' ? '0' : q_acc) + '.';
     }
-    D_str += '0'; 
+    D_str += '0';
   }
 
   const digit = D_str[ptr];
-  
-  if (digit === '.') {
-    if (!q_acc.includes('.')) q_acc = (q_acc === '' ? '0' : q_acc) + '.';
-    return divisionStep(D_str, d_val, q_acc, r_val, ptr + 1);
-  }
-
   const prefix = (r_val === '0' ? '' : r_val);
   const current_str = prefix + digit;
   const current_num = parseInt(current_str, 10);
@@ -52,7 +48,6 @@ export function divisionStep(D_str, d_val, q_acc, r_val, ptr) {
   let next_q = q_acc;
   let next_r = current_str;
   let sub = 0;
-  let log = `IP[${ptr}]: baixou '${digit}'.`;
 
   if (current_num >= d_val) {
     const q_digit = Math.floor(current_num / d_val);
@@ -60,14 +55,14 @@ export function divisionStep(D_str, d_val, q_acc, r_val, ptr) {
     const remainder = current_num - sub;
     next_q += q_digit;
     next_r = remainder.toString();
-    log += ` Executou: ${current_num} / ${d_val} = ${q_digit}.`;
   } else {
+    // Registra zero no quociente se já começamos a formar o resultado
     if (next_q !== '' && !next_q.endsWith('.')) {
       next_q += '0';
-      log += ` Registrou '0'.`;
     } else if (next_q === '' && ptr === D_str.length - 1) {
-       next_q = '0';
-       log += ` Registrou '0'.`;
+       // Caso Ferretto: 1 / 5 -> "0," e ganha um 0
+       next_q = '0.';
+       D_str += '0'; 
     }
   }
 
@@ -75,7 +70,6 @@ export function divisionStep(D_str, d_val, q_acc, r_val, ptr) {
     q: next_q, 
     r: next_r, 
     ptr: ptr + 1, 
-    log, 
     done: false, 
     D_str,
     stepData: {
