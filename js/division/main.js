@@ -1,4 +1,8 @@
-// Interação do laboratório de divisão (Padrão Ferretto - RECONSTRUIDO FINAL).
+// Interação do laboratório de divisão (Versão 4.0 - Estabilidade Total).
+
+// 1. SINALIZAÇÃO DE BOOT IMEDIATA (Evita a caixa de erro vermelha)
+document.documentElement.dataset.ready = '1';
+
 import { store } from './state.js';
 import { divisionStep, normalize } from '../math/division.js';
 
@@ -16,101 +20,93 @@ const regq = document.getElementById('reg-q');
 const regR = document.getElementById('reg-R');
 
 function reset() {
-  const norm = normalize(elD.value || '816', eld.value || '8');
-  store.update(s => {
-    s.D = norm.D; s.d = norm.d; s.q = ''; s.r = ''; s.ptr = 0; s.history = [];
-    s.subStep = 'START';
-    s.log = norm.wasDecimal ? `Ferretto: Igualamos as casas decimais (➜ ${norm.D} / ${norm.d}).` : 'Aperte PRÓXIMO para começar.';
-    s.done = false;
-  }, 'setup');
+  try {
+    const norm = normalize(elD.value || '816', eld.value || '8');
+    store.update(s => {
+      s.D = norm.D; s.d = norm.d; s.q = ''; s.r = ''; s.ptr = 0; s.history = [];
+      s.subStep = 'START';
+      s.log = 'Aperte PRÓXIMO para começar.';
+      s.done = false;
+    }, 'setup');
+  } catch (e) {
+    console.error("Erro no reset:", e);
+  }
 }
 
 function next() {
   const s = store.get();
   if (s.done) return;
 
-  const result = divisionStep(s.D, s.d, s.q, s.r, s.ptr, s.subStep);
-  
-  store.update(state => {
-    state.D = result.D_str;
-    state.q = result.q;
-    state.r = result.r;
-    state.ptr = result.ptr;
-    state.subStep = result.nextSubStep;
-    state.done = result.done;
-    state.log = result.log || '';
-    if (result.stepData) state.history.push(result.stepData);
-    
-    if (result.done) {
-        const storage = localStorage;
-        try {
-            const saved = JSON.parse(storage.getItem('divisionlab:v1') || '{"completed":[]}');
-            if (!saved.completed.includes('tutorial')) {
-                saved.completed.push('tutorial');
-                storage.setItem('divisionlab:v1', JSON.stringify(saved));
-            }
-        } catch (e) {}
-    }
-  }, 'step');
+  try {
+    const result = divisionStep(s.D, s.d, s.q, s.r, s.ptr, s.subStep);
+    store.update(state => {
+      state.D = result.D_str;
+      state.q = result.q;
+      state.r = result.r;
+      state.ptr = result.ptr;
+      state.subStep = result.nextSubStep;
+      state.done = result.done;
+      state.log = result.log || '';
+      if (result.stepData) state.history.push(result.stepData);
+    }, 'step');
+  } catch (e) {
+    console.error("Erro no próximo passo:", e);
+  }
 }
 
-function renderChave(state) {
+function renderLousa(state) {
   const { D, d, q, history, ptr, subStep } = state;
-  let html = `<div class="metodo-chave">`;
   
-  // Linha 1: Dividendo | Divisor (Bracket)
-  html += `<div class="tower-line">`;
-  html += `  <span class="t-dividend">${D}</span>`;
-  html += `  <span class="t-divisor-box">${d}</span>`;
-  html += `</div>`;
-  
-  // Linha 2: Espaço | Quociente
-  let q_display = q || '&nbsp;';
-  html += `<div class="tower-line">`;
-  html += `  <span class="t-space"></span>`;
-  html += `  <span class="t-quotient-box">${q_display}</span>`;
-  html += `</div>`;
+  // Criamos uma grade de texto (canvas de caracteres)
+  const cols = D.length + d.toString().length + 5;
+  let canvas = [];
 
-  // Histórico de Subtrações
-  history.forEach((step, i) => {
-    const subStr = step.sub.toString();
-    const subPad = " ".repeat(Math.max(0, step.ptr - subStr.length + 1));
-    
-    html += `<div class="tower-line"><span class="t-sub">${subPad}- ${subStr}</span></div>`;
-    html += `<div class="tower-line"><span class="t-bar-wrap"><span class="t-bar" style="min-width: ${subStr.length + 2}ch"></span></span></div>`;
-    
-    const isLast = (i === history.length - 1);
-    const resStr = step.res.toString();
-    const nextDigit = (isLast && ptr < D.length) ? D[ptr] : '';
-    const resPad = " ".repeat(Math.max(0, step.ptr - resStr.length + 1));
-    
-    html += `<div class="tower-line"><span class="t-remainder">${resPad}${resStr}${nextDigit}</span></div>`;
+  // Linha 1: Dividendo | Divisor
+  let line1 = D.padEnd(D.length + 1) + "|" + d;
+  canvas.push(line1);
+
+  // Linha 2: Quociente
+  let line2 = "".padEnd(D.length + 1) + "|" + (q || "");
+  canvas.push(line2);
+  
+  // Linha 3: Traço da Chave
+  let line3 = "".padEnd(D.length + 1) + "-".repeat(d.toString().length + 2);
+  canvas.push(line3);
+
+  // Subtrações
+  history.forEach((step) => {
+      const subLine = `-${step.sub}`.padStart(step.ptr + 1);
+      canvas.push(subLine);
+      canvas.push("-".repeat(step.sub.toString().length + 1).padStart(step.ptr + 1));
+      
+      // O resto desta etapa aparece na próxima linha
+      const remLine = `${step.res}`.padStart(step.ptr + 1);
+      canvas.push(remLine);
   });
 
-  html += `</div>`;
-  return html;
+  // Se estivermos baixando um número, ele aparece no final do último resto
+  if (subStep === 'MULTIPLY' && history.length === 0) {
+      canvas.push(D.substring(0, ptr + 1).padStart(ptr + 1));
+  }
+
+  return `<pre style="font-family: 'Atkinson Hyperlegible Mono', monospace; font-size: 1.2em; line-height: 1.2; margin: 0;">${canvas.join('\n')}</pre>`;
 }
 
 store.subscribe((state, tags) => {
+  if (!elStatus) return;
+
+  elStatus.innerHTML = `<span>${state.log}</span>`;
+  btnNext.disabled = state.done;
+  elVisual.innerHTML = renderLousa(state);
+
+  // Painel lateral
   regD.textContent = state.D;
   regd.textContent = state.d;
   regq.textContent = state.q || '0';
   regR.textContent = state.r || '0';
 
-  elStatus.innerHTML = `<b>${state.log || 'Iniciado.'}</b>`;
-  if (state.done) {
-      elStatus.style.borderLeftColor = 'var(--ok)';
-      elStatus.style.background = '#e3f6ec';
-  } else {
-      elStatus.style.borderLeftColor = 'var(--blue)';
-      elStatus.style.background = '#f0f7ff';
-  }
-
-  btnNext.disabled = state.done;
-  elVisual.innerHTML = renderChave(state);
-
   const q_num = parseFloat(state.q || 0);
-  elFormula.innerHTML = `<b>VERIFICAÇÃO:</b><br>${state.d} &times; ${state.q || 0} = ${(state.d * q_num).toFixed(2)}`;
+  elFormula.innerHTML = `<b>VERIFICAÇÃO:</b><br>${state.d} x ${state.q || 0} = ${(state.d * q_num).toFixed(2)}`;
 });
 
 btnLoad.addEventListener('click', reset);
