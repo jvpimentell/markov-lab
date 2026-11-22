@@ -61,14 +61,42 @@
       line-height: 1.1;
       white-space: pre;
     }
+    .math-grid {
+        border-collapse: collapse;
+        font-family: var(--mono);
+        font-size: 1.5em;
+    }
+    .math-grid td {
+        width: 1.2ch;
+        height: 1.2em;
+        text-align: center;
+        padding: 0;
+        vertical-align: middle;
+    }
+    .chave-v {
+        border-left: 3px solid var(--ink);
+    }
+    .chave-h {
+        border-top: 3px solid var(--ink);
+        text-align: left !important;
+        padding-left: 10px !important;
+        color: var(--ok-ink);
+        font-weight: bold;
+    }
+    .divisor-cell {
+        text-align: left !important;
+        padding-left: 10px !important;
+    }
+    .sub-val {
+        color: var(--pen-ink);
+    }
+    .sub-bar {
+        border-bottom: 2px solid var(--ink-3);
+    }
+    .rem-val {
+        font-weight: bold;
+    }
     .tower-line { display: flex; }
-    .t-dividend { min-width: 200px; text-align: right; padding-right: 15px; }
-    .t-divisor { border-left: 3px solid var(--ink); padding-left: 15px; border-bottom: 3px solid var(--ink); }
-    .t-space { min-width: 200px; }
-    .t-quotient { border-left: 3px solid var(--ink); padding-left: 15px; color: var(--ok-ink); font-weight: bold; }
-    .t-sub { min-width: 200px; text-align: right; padding-right: 15px; color: var(--pen-ink); }
-    .t-bar { min-width: 200px; text-align: right; padding-right: 15px; }
-    .t-remainder { min-width: 200px; text-align: right; padding-right: 15px; font-weight: bold; }
     
     /* Indentação dinâmica baseada no passo */
     .t-indent-0 { margin-left: 0; }
