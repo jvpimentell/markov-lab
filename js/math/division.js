@@ -1,8 +1,5 @@
-// Motor ajustado para explicações pedagógicas assertivas.
+// Motor ajustado para explicações pedagógicas assertivas (FIXED SCOPING).
 
-/**
- * Normaliza os valores para garantir que o divisor seja inteiro.
- */
 export function normalize(D, d) {
   const D_str = D.toString();
   const d_str = d.toString();
@@ -15,14 +12,11 @@ export function normalize(D, d) {
   return { D: D_num.toString(), d: d_num, factor, wasDecimal: max_dec > 0 };
 }
 
-/**
- * Executa um passo do algoritmo da divisão com explicações assertivas.
- */
 export function divisionStep(D_str, d_val, q_acc, r_val, ptr, subStep = 'START') {
   // 1. FIM DA CONTA
   if (ptr >= D_str.length) {
     if (r_val === '0' || r_val === '' || (q_acc.includes('.') && q_acc.split('.')[1].length >= 5)) {
-      return { q: q_acc, r: r_val, ptr, done: true, D_str, stepData: null, log: "<b>Divisão finalizada.</b> O resto é zero ou atingimos o limite de precisão de 5 casas." };
+      return { q: q_acc, r: r_val, ptr, done: true, D_str, stepData: null, log: "<b>Divisão finalizada.</b> O resto é zero ou atingimos o limite de precisão." };
     }
     if (!q_acc.includes('.')) q_acc = (q_acc === '' ? '0' : q_acc) + '.';
     D_str += '0';
@@ -32,23 +26,23 @@ export function divisionStep(D_str, d_val, q_acc, r_val, ptr, subStep = 'START')
   let prefix = (r_val === '0' ? '' : r_val);
   let current_num = parseInt(prefix + D_str[current_ptr], 10);
 
-  // 2. BUSCA POR VALOR (Resolve o erro dos cliques repetitivos e explica o porquê)
+  // 2. BUSCA POR VALOR (Salto inteligente)
   if (subStep === 'START' && current_num < d_val && current_ptr < D_str.length - 1) {
+      let temp_q = q_acc;
       while (current_num < d_val && current_ptr < D_str.length - 1) {
-          if (q_acc !== '' && !q_acc.endsWith('.')) q_acc += '0';
+          if (temp_q !== '' && !temp_q.endsWith('.')) temp_q += '0';
           current_ptr++;
           current_num = parseInt(prefix + D_str.substring(ptr, current_ptr + 1), 10);
       }
-      return { q: q_acc, r: r_val, ptr: current_ptr, done: false, D_str, nextSubStep: 'START', log: `Baixamos os algarismos até formar <b>${current_num}</b>, pois os valores anteriores eram menores que o divisor (<b>${d_val}</b>).` };
+      return { q: temp_q, r: r_val, ptr: current_ptr, done: false, D_str, nextSubStep: 'START', log: `Baixamos os algarismos até formar <b>${current_num}</b>, pois o valor anterior era menor que o divisor.` };
   }
 
   let next_q = q_acc;
   let next_r = r_val;
   let sub = 0;
 
-  // 3. CICLO DE MICRO-PASSOS PEDAGÓGICOS
   if (subStep === 'START') {
-     return { q: q_acc, r: r_val, ptr: current_ptr, done: false, D_str, nextSubStep: 'MULTIPLY', log: `Temos o valor <b>${current_num}</b>. Perguntamos: quantas vezes o <b>${d_val}</b> cabe dentro dele?` };
+     return { q: q_acc, r: r_val, ptr: current_ptr, done: false, D_str, nextSubStep: 'MULTIPLY', log: `Temos o valor <b>${current_num}</b>. Quantas vezes o <b>${d_val}</b> cabe dentro dele?` };
   }
 
   if (current_num >= d_val) {
@@ -57,23 +51,24 @@ export function divisionStep(D_str, d_val, q_acc, r_val, ptr, subStep = 'START')
     const remainder = current_num - sub;
     
     if (subStep === 'MULTIPLY') {
-        const next_q = q_acc + q_digit;
-        return { q: next_q, r: r_val, ptr: current_ptr, done: false, D_str, nextSubStep: 'SUBTRACT', log: `Cabe <b>${q_digit}</b> vezes. Colocamos o ${q_digit} no quociente e multiplicamos: <b>${q_digit} x ${d_val} = ${sub}</b>.` };
+        next_q = q_acc + q_digit;
+        return { q: next_q, r: r_val, ptr: current_ptr, done: false, D_str, nextSubStep: 'SUBTRACT', log: `Cabe <b>${q_digit}</b> vezes. Multiplicamos: ${q_digit} x ${d_val} = ${sub}.` };
     }
     
     if (subStep === 'SUBTRACT') {
-        return { q: q_acc, r: remainder.toString(), ptr: current_ptr + 1, done: false, D_str, nextSubStep: 'START', log: `Escrevemos o ${sub} embaixo do ${current_num} e subtraímos para ver o que sobra. O resto é <b>${remainder}</b>.`, stepData: { val: current_num, sub, res: remainder, digit: D_str[current_ptr], ptr: current_ptr } };
+        next_r = remainder.toString();
+        return { q: q_acc, r: next_r, ptr: current_ptr + 1, done: false, D_str, nextSubStep: 'START', log: `Subtraímos ${sub} de ${current_num}. O resto é <b>${remainder}</b>.`, stepData: { val: current_num, sub, res: remainder, digit: D_str[current_ptr], ptr: current_ptr } };
     }
   } else {
-    // 4. CASOS DE "NÃO CABE" (Explicação assertiva do 0 no quociente)
+    // CASO ESPECIAL: MENOR
     if (next_q === '' && current_ptr === D_str.length - 1) {
-       const next_q = '0.';
+       next_q = '0.';
        const next_D = D_str + '0'; 
-       return { q: next_q, r: r_val, ptr: current_ptr, done: false, D_str: next_D, nextSubStep: 'START', log: `Como <b>${current_num}</b> é menor que <b>${d_val}</b> e não há mais números no dividendo, colocamos <b>0,</b> no quociente e iniciamos as casas decimais.` };
+       return { q: next_q, r: r_val, ptr: current_ptr, done: false, D_str: next_D, nextSubStep: 'START', log: `Como <b>${current_num}</b> é menor que o divisor, iniciamos com <b>0,</b>.` };
     }
-    const next_q = q_acc + '0';
-    return { q: next_q, r: current_num.toString(), ptr: current_ptr + 1, done: false, D_str, nextSubStep: 'START', log: `O valor <b>${current_num}</b> é menor que <b>${d_val}</b>. Por isso, registramos <b>0</b> no quociente antes de baixar o próximo algarismo.` };
+    next_q = q_acc + '0';
+    return { q: next_q, r: current_num.toString(), ptr: current_ptr + 1, done: false, D_str, nextSubStep: 'START', log: `Não cabe. Registramos <b>0</b> no quociente.` };
   }
 
-  return { q: q_acc, r: r_val, ptr: current_ptr + 1, done: false, D_str, nextSubStep: 'START' };
+  return { q: next_q, r: next_r, ptr: current_ptr + 1, done: false, D_str, nextSubStep: 'START' };
 }
