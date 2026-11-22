@@ -10,11 +10,12 @@ const initial = {
   r: '',
   ptr: 0,
   log: 'Insira os valores e clique em CARREGAR.',
-  done: false
+  done: false,
+  history: [] // Lista de { val, sub, res, digit, ptr }
 };
 
 function derive(state, tags) {
-  // Nada complexo para derivar aqui, o motor faz a transição.
+  // Nada complexo para derivar aqui
 }
 
 export const store = createStore(initial, derive);

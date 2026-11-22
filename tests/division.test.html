@@ -75,12 +75,16 @@ t('divisão com decimais: 1.2 / 0.5', () => {
   same(D, '12', 'dividendo normalizado');
   same(d, 5, 'divisor normalizado');
   
-  // No motor novo, o primeiro passo de 12/5 já gera quociente
+  // No motor novo, o primeiro passo baixa '1'. 1 < 5.
   let res = divisionStep(D, d, '', '', 0);
+  same(res.q, ''); 
+  
+  // Segundo passo baixa '2'. 12 / 5 = 2.
+  res = divisionStep(D, d, res.q, res.r, res.ptr);
   same(res.q, '2');
   same(res.r, '2');
   
-  // Próximo passo deve baixar um zero e colocar ponto
+  // Próximo passo deve baixar um zero e colocar ponto. 20 / 5 = 4.
   res = divisionStep(res.D_str, d, res.q, res.r, res.ptr);
   same(res.q, '2.4');
   same(res.r, '0');

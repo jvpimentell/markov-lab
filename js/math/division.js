@@ -14,7 +14,6 @@ export function normalize(D, d) {
   if (d_str.includes('.')) {
     const shift = d_str.split('.')[1].length;
     const factor = Math.pow(10, shift);
-    // Usamos Number.toFixed para evitar sujeira de floating point binário
     D_val = parseFloat((D_val * factor).toFixed(10));
     d_val = parseFloat((d_val * factor).toFixed(10));
   }
@@ -24,29 +23,23 @@ export function normalize(D, d) {
 
 /**
  * Executa um passo do algoritmo da divisão.
- * @param {string} D_str Dividendo como string.
- * @param {number} d_val Divisor inteiro.
- * @param {string} q_acc Quociente acumulado.
- * @param {string} r_val Resto atual.
- * @param {number} ptr Índice do próximo algarismo.
- * @returns {{ q: string, r: string, ptr: number, log: string, done: boolean, D_str: string }}
+ * @returns {{ q: string, r: string, ptr: number, log: string, done: boolean, D_str: string, stepData: object }}
  */
 export function divisionStep(D_str, d_val, q_acc, r_val, ptr) {
-  // Se acabaram os algarismos originais e ainda há resto, entramos no modo decimal (baixando zeros)
+  // Se acabaram os algarismos originais e ainda há resto, entramos no modo decimal
   if (ptr >= D_str.length) {
     if (r_val === '0' || r_val === '' || q_acc.split('.')[1]?.length >= 5) {
-      return { q: q_acc, r: r_val, ptr, log: 'Algoritmo finalizado (limite de precisão atingido).', done: true, D_str };
+      return { q: q_acc, r: r_val, ptr, log: 'Fim.', done: true, D_str, stepData: null };
     }
     
     if (!q_acc.includes('.')) {
       q_acc = (q_acc === '' ? '0' : q_acc) + '.';
     }
-    D_str += '0'; // Baixa um zero
+    D_str += '0'; 
   }
 
   const digit = D_str[ptr];
   
-  // Ponto decimal no dividendo (ex: 12.5)
   if (digit === '.') {
     if (!q_acc.includes('.')) q_acc = (q_acc === '' ? '0' : q_acc) + '.';
     return divisionStep(D_str, d_val, q_acc, r_val, ptr + 1);
@@ -58,28 +51,39 @@ export function divisionStep(D_str, d_val, q_acc, r_val, ptr) {
 
   let next_q = q_acc;
   let next_r = current_str;
-  let log = `IP[${ptr}]: baixou '${digit}'. Registrador: ${current_num}.`;
+  let sub = 0;
+  let log = `IP[${ptr}]: baixou '${digit}'.`;
 
   if (current_num >= d_val) {
     const q_digit = Math.floor(current_num / d_val);
-    const sub = q_digit * d_val;
+    sub = q_digit * d_val;
     const remainder = current_num - sub;
     next_q += q_digit;
     next_r = remainder.toString();
-    log += ` Executou: ${current_num} / ${d_val} = ${q_digit}, sobra ${remainder}.`;
+    log += ` Executou: ${current_num} / ${d_val} = ${q_digit}.`;
   } else {
-    // Adiciona zero no quociente se já começamos a dividir
     if (next_q !== '' && !next_q.endsWith('.')) {
       next_q += '0';
-      log += ` Menor que divisor: registrou '0' no quociente.`;
+      log += ` Registrou '0'.`;
     } else if (next_q === '' && ptr === D_str.length - 1) {
-       // Primeiro passo e já é menor
        next_q = '0';
-       log += ` Menor que divisor: registrou '0'.`;
-    } else {
-      log += ` Menor que divisor: aguardando próximo algarismo.`;
+       log += ` Registrou '0'.`;
     }
   }
 
-  return { q: next_q, r: next_r, ptr: ptr + 1, log, done: false, D_str };
+  return { 
+    q: next_q, 
+    r: next_r, 
+    ptr: ptr + 1, 
+    log, 
+    done: false, 
+    D_str,
+    stepData: {
+        val: current_num,
+        sub: sub,
+        res: parseInt(next_r),
+        digit: digit,
+        ptr: ptr
+    }
+  };
 }

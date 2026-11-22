@@ -33,6 +33,7 @@ function reset() {
     s.q = '';
     s.r = '';
     s.ptr = 0;
+    s.history = [];
     s.log = (rawD !== D) ? `Normalizado: ${rawD}/${rawd} virou ${D}/${d}. Pressione F8.` : 'Estado inicializado. Pressione F8.';
     s.done = false;
   }, 'setup');
@@ -45,15 +46,17 @@ function next() {
   const result = divisionStep(s.D, s.d, s.q, s.r, s.ptr);
   
   store.update(state => {
-    state.D = result.D_str; // Atualiza caso tenha baixado zeros
+    state.D = result.D_str;
     state.q = result.q;
     state.r = result.r;
     state.ptr = result.ptr;
     state.log = result.log;
     state.done = result.done;
+    if (result.stepData) {
+        state.history.push(result.stepData);
+    }
     
     if (result.done) {
-        // Marca como concluído no progresso da trilha
         const storage = localStorage;
         try {
             const saved = JSON.parse(storage.getItem('divisionlab:v1') || '{"completed":[]}');
@@ -64,6 +67,61 @@ function next() {
         } catch (e) { /* ignore */ }
     }
   }, 'step');
+}
+
+function renderPaperTower(state) {
+  const D = state.D;
+  const d = state.d;
+  const history = state.history;
+  
+  let html = `<div class="paper-tower">`;
+  
+  // Linha 1: Dividendo | Divisor
+  html += `<div class="tower-line"><span class="t-dividend">${D}</span><span class="t-divisor">| ${d}</span></div>`;
+  
+  if (history.length > 0) {
+    let q_display = state.q;
+    const firstSub = history.find(h => h.sub > 0);
+    const subVal = firstSub ? firstSub.sub : '0';
+    
+    // Alinhamento da primeira subtração
+    const firstDigitIndex = D.search(/[1-9]/);
+    const initialIndent = firstDigitIndex >= 0 ? firstDigitIndex : 0;
+    const indentStr = " ".repeat(initialIndent);
+
+    html += `<div class="tower-line"><span class="t-sub">${indentStr}- ${subVal}</span><span class="t-quotient">| <span class="highlight-q">${q_display}</span></span></div>`;
+    html += `<div class="tower-line"><span class="t-bar">${indentStr}-------</span></div>`;
+    
+    let currentPadding = initialIndent;
+    
+    for (let i = 0; i < history.length; i++) {
+        const step = history[i];
+        const nextStep = history[i+1];
+        
+        if (nextStep) {
+            // No papel, baixamos o próximo dígito ao lado do resto
+            const pad = " ".repeat(currentPadding + 1);
+            html += `<div class="tower-line"><span class="t-remainder">${pad}${step.res}${nextStep.digit}</span></div>`;
+            
+            if (nextStep.sub > 0) {
+                html += `<div class="tower-line"><span class="t-sub">${pad}- ${nextStep.sub}</span></div>`;
+                html += `<div class="tower-line"><span class="t-bar">${pad}----</span></div>`;
+                // Ao subtrair, o resto da próxima etapa começa um pouco à direita se o quociente crescer
+                // Mas no algoritmo padrão, mantemos o alinhamento da esquerda
+                // Vou manter o currentPadding crescendo 1 a cada passo de dígito
+                currentPadding++;
+            } else {
+                currentPadding++;
+            }
+        } else if (state.done) {
+            const pad = " ".repeat(currentPadding + 1);
+            html += `<div class="tower-line"><span class="t-remainder">${pad}${step.res}</span></div>`;
+        }
+    }
+  }
+  
+  html += `</div>`;
+  return html;
 }
 
 store.subscribe((state, tags) => {
@@ -78,25 +136,14 @@ store.subscribe((state, tags) => {
   btnNext.disabled = state.done;
 
   if (tags.has('setup')) {
-    elVisual.innerHTML = `<span class="highlight-D">${state.D}</span> | <u>${state.d}</u>`;
+    elVisual.innerHTML = `<div class="paper-setup"><span class="highlight-D">${state.D}</span> <span class="chave">|</span> <u>${state.d}</u></div>`;
   } else {
-    elVisual.innerHTML = `
-      <div style="color:var(--ink-3); font-size: 0.5em; margin-bottom: 10px;">Divisão: ${state.d}</div>
-      <div>Q: <span class="highlight-q">${state.q || '0'}</span></div>
-      <div style="font-size: 0.7em;">R: <span class="highlight-R">${state.r || '0'}</span></div>
-    `;
+    elVisual.innerHTML = renderPaperTower(state);
   }
 
   const q_num = parseFloat(state.q || 0);
   const r_num = parseInt(state.r || 0, 10);
-  // Para a fórmula bater com decimais: (d * q) + (R / 10^precisão)
-  // Simplificando: d * q + r_num * 10^-p
   const res = parseFloat((state.d * q_num).toFixed(10)) + (r_num / Math.pow(10, state.q.split('.')[1]?.length || 0));
-  
-  // No algoritmo manual com resto final, a prova real é D = d*q + R
-  // Mas com decimais, o resto "muda de escala" a cada passo.
-  // Mostramos o match final quando acaba.
-  const targetD = parseFloat(state.D.split('.')[0] + (state.D.includes('.') ? '.' + state.D.split('.')[1] : ''));
   
   elFormula.innerHTML = `
     Projeção: ${state.d} &times; <span class="highlight-q">${state.q || 0}</span> = ${(state.d * q_num).toFixed(4)}<br>

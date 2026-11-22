@@ -33,7 +33,9 @@
     .reg-line { display: flex; justify-content: space-between; margin-bottom: 12px; border-bottom: 1px solid #30363d; padding-bottom: 4px; }
     .reg-label { color: #8b949e; }
     .work-area {
-      background: var(--card);
+      background: var(--stage);
+      background-image: radial-gradient(var(--grid) 1.5px, transparent 1.5px);
+      background-size: 20px 20px;
       border: 1.5px solid var(--line);
       border-radius: var(--r);
       padding: 32px;
@@ -43,14 +45,43 @@
     }
     .division-step-visual {
       font-family: var(--mono);
-      font-size: 3em;
-      text-align: center;
-      padding: 60px 40px;
-      background: var(--stage);
-      border: 1px dashed var(--line);
+      font-size: 1.8em;
+      text-align: left;
+      padding: 40px;
+      background: rgba(255,255,255,0.7);
+      border: 1px solid var(--line);
       border-radius: var(--r-sm);
       color: var(--ink);
+      min-height: 500px;
+      overflow: auto;
+      box-shadow: 2px 2px 5px rgba(0,0,0,0.05);
     }
+    .paper-tower {
+      display: inline-block;
+      line-height: 1.2;
+    }
+    .tower-line {
+      display: flex;
+      white-space: pre;
+    }
+    .t-dividend { min-width: 150px; text-align: right; padding-right: 10px; }
+    .t-divisor { border-left: 2px solid var(--ink); padding-left: 10px; }
+    .t-sub { min-width: 150px; text-align: right; padding-right: 10px; color: var(--pen-ink); }
+    .t-quotient { border-left: 2px solid var(--ink); padding-left: 10px; color: var(--ok-ink); }
+    .t-bar { min-width: 150px; text-align: right; padding-right: 10px; text-decoration: overline; }
+    .t-remainder { min-width: 150px; text-align: right; padding-right: 10px; font-weight: bold; }
+    
+    /* Indentação dinâmica baseada no passo */
+    .t-indent-0 { margin-left: 0; }
+    .t-indent-1 { margin-left: 1ch; }
+    .t-indent-2 { margin-left: 2ch; }
+    .t-indent-3 { margin-left: 3ch; }
+    .t-indent-4 { margin-left: 4ch; }
+    .t-indent-5 { margin-left: 5ch; }
+    .t-indent-6 { margin-left: 6ch; }
+
+    .paper-setup { font-size: 1.5em; text-align: center; width: 100%; }
+    .chave { font-weight: bold; margin: 0 10px; }
     .setup-controls {
       display: flex;
       gap: 16px;
